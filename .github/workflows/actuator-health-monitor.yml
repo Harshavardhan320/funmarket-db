@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # Runs every 10 minutes (UTC)
+    - cron: "0 * * * *"   # Once per hour (UTC)
   workflow_dispatch:
 
 jobs:
@@ -18,77 +18,81 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create or update actuator health document
+      - name: Monitor actuator every 5 minutes for 1 hour
         run: |
           set -e
 
-          # Directories
           mkdir -p monitoring/actuator
 
           FILE="monitoring/actuator/actuator-health-log.txt"
           TEMP_FILE="monitoring/actuator/.temp-log.txt"
           ID_FILE="monitoring/actuator/.last_id"
 
-          # IST Date & Time
-          DATE=$(date -u -d "+5 hours 30 minutes" +"%d-%b-%Y")
-          TIME=$(date -u -d "+5 hours 30 minutes" +"%I:%M:%S %p IST")
+          for RUN in {1..12}; do
+            DATE=$(date -u -d "+5 hours 30 minutes" +"%d-%b-%Y")
+            TIME=$(date -u -d "+5 hours 30 minutes" +"%I:%M:%S %p IST")
 
-          # Initialize ID if missing
-          if [ ! -f "$ID_FILE" ]; then
-            echo "0" > "$ID_FILE"
-          fi
+            # Initialize ID file if missing
+            if [ ! -f "$ID_FILE" ]; then
+              echo "0" > "$ID_FILE"
+            fi
 
-          LAST_ID=$(cat "$ID_FILE")
-          NEW_ID=$((LAST_ID + 1))
-          echo "$NEW_ID" > "$ID_FILE"
+            LAST_ID=$(cat "$ID_FILE")
+            NEW_ID=$((LAST_ID + 1))
+            echo "$NEW_ID" > "$ID_FILE"
 
-          # Call actuator endpoint
-          HTTP_CODE=$(curl -s -w "%{http_code}" -o response.json \
-            https://funmarket-db.onrender.com/actuator/health)
+            # Call actuator endpoint
+            HTTP_CODE=$(curl -s -w "%{http_code}" -o response.json \
+              https://funmarket-db.onrender.com/actuator)
 
-          if [ "$HTTP_CODE" = "200" ]; then
-            STATUS="UP ✅"
-            MESSAGE="Service is healthy and running"
-          else
-            STATUS="DOWN ❌"
-            MESSAGE="Service is unreachable or unhealthy"
-          fi
+            if [ "$HTTP_CODE" = "200" ]; then
+              STATUS="UP ✅"
+              MESSAGE="Service is healthy and running"
+            else
+              STATUS="DOWN ❌"
+              MESSAGE="Service is unreachable or unhealthy"
+            fi
 
-          # Write latest entry at TOP
-          {
-            echo "========================================"
-            echo "ID          : $NEW_ID"
-            echo "Date        : $DATE"
-            echo "Time        : $TIME"
-            echo "Service     : funmarket-db"
-            echo "Request URI : https://funmarket-db.onrender.com/actuator"
-            echo "HTTP Status : $HTTP_CODE"
-            echo "Status      : $STATUS"
-            echo "Message     : $MESSAGE"
-            echo "----------------------------------------"
-            echo "Response :"
-            cat response.json
-            echo ""
-            echo "========================================"
-            echo ""
-          } > "$TEMP_FILE"
+            # Write latest entry at the TOP
+            {
+              echo "========================================"
+              echo "ID          : $NEW_ID"
+              echo "Date        : $DATE"
+              echo "Time        : $TIME"
+              echo "Service     : funmarket-db"
+              echo "Request URI : https://funmarket-db.onrender.com/actuator"
+              echo "HTTP Status : $HTTP_CODE"
+              echo "Status      : $STATUS"
+              echo "Message     : $MESSAGE"
+              echo "----------------------------------------"
+              echo "Response :"
+              cat response.json
+              echo ""
+              echo "========================================"
+              echo ""
+            } > "$TEMP_FILE"
 
-          # Append previous content (if any)
-          if [ -f "$FILE" ]; then
-            cat "$FILE" >> "$TEMP_FILE"
-          fi
+            if [ -f "$FILE" ]; then
+              cat "$FILE" >> "$TEMP_FILE"
+            fi
 
-          # Replace original file
-          mv "$TEMP_FILE" "$FILE"
+            mv "$TEMP_FILE" "$FILE"
 
-      - name: Commit and push changes
+            echo "Completed check $RUN at $(date -u)"
+
+            # Wait exactly 5 minutes
+            if [ "$RUN" -lt 12 ]; then
+              sleep 300
+            fi
+          done
+
+      - name: Commit and push updated document
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
           git add monitoring/actuator/actuator-health-log.txt monitoring/actuator/.last_id
 
-          git commit -m "📡 Actuator health update ($(date -u -d '+5 hours 30 minutes' '+%d-%b-%Y %I:%M %p IST'))" || echo "No changes to commit"
+          git commit -m "📡 Actuator health updates ($(date -u -d '+5 hours 30 minutes' '+%d-%b-%Y %I:%M %p IST'))" || echo "No changes to commit"
 
           git push
-          
