@@ -1,12 +1,12 @@
-name: Actuator Health Monitor
+name: Actuator Health Monitor (5-Min Loop Commit)
 
 permissions:
   contents: write
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # Once per hour (UTC)
   workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"   # Starts once per hour (UTC)
 
 jobs:
   monitor-actuator:
@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Monitor actuator every 5 minutes for 1 hour
+      - name: Monitor actuator every 5 minutes and commit each time
         run: |
           set -e
 
@@ -29,10 +29,12 @@ jobs:
           ID_FILE="monitoring/actuator/.last_id"
 
           for RUN in {1..12}; do
+            echo "===== Run $RUN started at $(date -u) ====="
+
             DATE=$(date -u -d "+5 hours 30 minutes" +"%d-%b-%Y")
             TIME=$(date -u -d "+5 hours 30 minutes" +"%I:%M:%S %p IST")
 
-            # Initialize ID file if missing
+            # Initialize ID file
             if [ ! -f "$ID_FILE" ]; then
               echo "0" > "$ID_FILE"
             fi
@@ -41,9 +43,9 @@ jobs:
             NEW_ID=$((LAST_ID + 1))
             echo "$NEW_ID" > "$ID_FILE"
 
-            # Call actuator endpoint
+            # Call actuator
             HTTP_CODE=$(curl -s -w "%{http_code}" -o response.json \
-              https://funmarket-db.onrender.com/actuator)
+              https://funmarket-db.onrender.com/actuator/health)
 
             if [ "$HTTP_CODE" = "200" ]; then
               STATUS="UP ✅"
@@ -53,14 +55,14 @@ jobs:
               MESSAGE="Service is unreachable or unhealthy"
             fi
 
-            # Write latest entry at the TOP
+            # Write newest entry at TOP
             {
               echo "========================================"
               echo "ID          : $NEW_ID"
               echo "Date        : $DATE"
               echo "Time        : $TIME"
               echo "Service     : funmarket-db"
-              echo "Request URI : https://funmarket-db.onrender.com/actuator"
+              echo "Request URI : https://funmarket-db.onrender.com/actuator/health"
               echo "HTTP Status : $HTTP_CODE"
               echo "Status      : $STATUS"
               echo "Message     : $MESSAGE"
@@ -78,21 +80,18 @@ jobs:
 
             mv "$TEMP_FILE" "$FILE"
 
-            echo "Completed check $RUN at $(date -u)"
+            # Commit immediately
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
 
-            # Wait exactly 5 minutes
+            git add monitoring/actuator/actuator-health-log.txt monitoring/actuator/.last_id
+            git commit -m "📡 Actuator health check ID $NEW_ID ($(date -u -d '+5 hours 30 minutes' '+%d-%b-%Y %I:%M %p IST'))" || echo "No changes to commit"
+            git push
+
+            echo "===== Run $RUN completed ====="
+
+            # Wait 5 minutes (skip sleep after last run)
             if [ "$RUN" -lt 12 ]; then
               sleep 300
             fi
           done
-
-      - name: Commit and push updated document
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          git add monitoring/actuator/actuator-health-log.txt monitoring/actuator/.last_id
-
-          git commit -m "📡 Actuator health updates ($(date -u -d '+5 hours 30 minutes' '+%d-%b-%Y %I:%M %p IST'))" || echo "No changes to commit"
-
-          git push
