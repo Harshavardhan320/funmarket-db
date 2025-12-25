@@ -68,6 +68,7 @@ jobs:
             echo "----------------------------------------"
             echo "Response :"
             cat response.json
+            echo ""
             echo "========================================"
             echo ""
           } > "$TEMP_FILE"
