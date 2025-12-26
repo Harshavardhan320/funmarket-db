@@ -1,4 +1,18 @@
 ========================================
+ID          : 295
+Date        : 27-Dec-2025
+Time        : 03:28:16 AM IST
+Service     : funmarket-db
+Request URI : https://funmarket-db.onrender.com/actuator/health
+HTTP Status : 520
+Status      : DOWN ❌
+Message     : Service is unreachable or unhealthy
+----------------------------------------
+Response :
+error code: 520
+========================================
+
+========================================
 ID          : 294
 Date        : 27-Dec-2025
 Time        : 03:23:16 AM IST
