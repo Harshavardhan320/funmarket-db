@@ -1,4 +1,18 @@
 ========================================
+ID          : 338
+Date        : 27-Dec-2025
+Time        : 10:11:59 AM IST
+Service     : funmarket-db
+Request URI : https://funmarket-db.onrender.com/actuator/health
+HTTP Status : 200
+Status      : UP ✅
+Message     : Service is healthy and running
+----------------------------------------
+Response :
+{"status":"UP","groups":["liveness","readiness"]}
+========================================
+
+========================================
 ID          : 337
 Date        : 27-Dec-2025
 Time        : 10:06:58 AM IST
