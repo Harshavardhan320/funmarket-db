@@ -1,4 +1,18 @@
 ========================================
+ID          : 815
+Date        : 29-Dec-2025
+Time        : 09:18:59 AM IST
+Service     : funmarket-db
+Request URI : https://funmarket-db.onrender.com/actuator/health
+HTTP Status : 503
+Status      : DOWN ❌
+Message     : Service is unreachable or unhealthy
+----------------------------------------
+Response :
+{"status":"DOWN","groups":["liveness","readiness"]}
+========================================
+
+========================================
 ID          : 814
 Date        : 29-Dec-2025
 Time        : 08:16:35 AM IST
