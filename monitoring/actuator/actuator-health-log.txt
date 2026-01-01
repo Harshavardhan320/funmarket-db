@@ -1,4 +1,18 @@
 ========================================
+ID          : 1657
+Date        : 01-Jan-2026
+Time        : 06:11:49 PM IST
+Service     : funmarket-db
+Request URI : https://funmarket-db.onrender.com/actuator/health
+HTTP Status : 502
+Status      : DOWN ❌
+Message     : Service is unreachable or unhealthy
+----------------------------------------
+Response :
+error code: 500
+========================================
+
+========================================
 ID          : 1656
 Date        : 01-Jan-2026
 Time        : 04:47:49 PM IST
